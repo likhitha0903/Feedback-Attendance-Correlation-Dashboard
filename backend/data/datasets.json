@@ -1,0 +1,29 @@
+{
+  "default": {
+    "name": "Default Dataset",
+    "filename": "data.csv",
+    "path": "default/data.csv",
+    "upload_date": "2024-01-01",
+    "rows": 0,
+    "columns": 0,
+    "is_default": true
+  },
+  "034e8c38": {
+    "name": "data.csv",
+    "filename": "dataset_034e8c38.csv",
+    "path": "uploaded/dataset_034e8c38.csv",
+    "upload_date": "2025-11-02 19:58",
+    "rows": 350,
+    "columns": 10,
+    "is_default": false
+  },
+  "a601004e": {
+    "name": "dataset_138c6620.csv",
+    "filename": "dataset_a601004e.csv",
+    "path": "uploaded/dataset_a601004e.csv",
+    "upload_date": "2025-11-02 21:50",
+    "rows": 200,
+    "columns": 9,
+    "is_default": false
+  }
+}

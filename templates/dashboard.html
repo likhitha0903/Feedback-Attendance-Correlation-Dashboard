@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📊 Student Data Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  
+  <style>
+  :root {
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --accent-color: #1abc9c;
+    --light-bg: #f5f6fa;
+    --card-bg: #ffffff;
+    --text-dark: #2c3e50;
+    --text-light: #7f8c8d;
+    --border-radius: 10px;
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --sidebar-width: 280px;
+    --sidebar-collapsed-width: 70px;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    display: flex;
+    background-color: var(--light-bg);
+    color: var(--text-dark);
+    transition: all 0.3s ease;
+    overflow-x: hidden;
+  }
+
+  /* Loading Spinner Styles */
+  .plot-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    background: #f8f9fa;
+    border-radius: var(--border-radius);
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .loading-text {
+    color: var(--text-light);
+    font-size: 14px;
+  }
+  
+  /* Lazy load fade-in animation */
+  .lazy-loaded {
+    opacity: 0;
+    animation: fadeIn 0.5s ease-in forwards;
+  }
+  
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  /* Mobile Navbar */
+  .navbar {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .navbar {
+      display: flex;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2000;
+    }
+    
+    .sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+      transform: translateX(0);
+    }
+    
+    .content {
+      margin-left: 0 !important;
+      width: 100% !important;
+      padding-top: 60px;
+    }
+    
+    .sidebar.collapsed {
+      transform: translateX(-100%);
+    }
+
+    .toggle-sidebar {
+      display: none !important;
+    }
+
+    .plot-loading {
+      min-height: 150px;
+    }
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--secondary-color);
+    color: white;
+    height: 100vh;
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    z-index: 1000;
+    transition: all 0.3s ease;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  .sidebar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  .sidebar.collapsed .sidebar-content,
+  .sidebar.collapsed .sidebar-footer {
+    display: none;
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 0;
+    font-size: 1.4rem;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .sidebar.collapsed h2 {
+    font-size: 0;
+    padding: 20px 0;
+  }
+
+  .sidebar.collapsed h2::after {
+    content: "📊";
+    font-size: 1.5rem;
+  }
+
+  /* FIXED TOGGLE BUTTON STYLES */
+  .toggle-sidebar {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    bottom:25px; /* Half outside the sidebar */
+    background: var(--primary-color);
+    border: none;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    z-index: 3000;
+    transition: all 0.3s ease;
+  }
+
+  .toggle-sidebar:hover {
+    background: var(--accent-color);
+    transform: scale(1.1);
+  }
+
+  .sidebar.collapsed .toggle-sidebar {
+    right: 15px; /* Keep it in the same position when collapsed */
+  }
+
+  .sidebar a {
+    display: flex;
+    align-items: center;
+    padding: 12px 25px;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .sidebar.collapsed a {
+    padding: 12px 20px;
+    justify-content: center;
+  }
+
+  .sidebar.collapsed a span {
+    display: none;
+  }
+
+  .sidebar a i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+  }
+
+  .sidebar.collapsed a i {
+    margin-right: 0;
+  }
+
+  .sidebar a:hover,
+  .sidebar a.active {
+    background-color: var(--accent-color);
+    color: white;
+    border-left: 3px solid white;
+  }
+
+  .content {
+    margin-left: var(--sidebar-width);
+    padding: 20px;
+    flex: 1;
+    width: calc(100% - var(--sidebar-width));
+    transition: all 0.3s ease;
+    min-height: 100vh;
+  }
+
+  .content.expanded {
+    margin-left: var(--sidebar-collapsed-width);
+    width: calc(100% - var(--sidebar-collapsed-width));
+  }
+
+  h3.section-title {
+    border-left: 5px solid var(--primary-color);
+    padding-left: 10px;
+    margin-bottom: 20px;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .plot-container, .plot-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: var(--box-shadow);
+    transition: transform 0.3s ease;
+    overflow: visible;
+  }
+
+  .plot-card:hover, .plot-container:hover {
+    transform: translateY(-5px);
+  }
+
+  .plot-content{
+    width:100%;
+    height:auto;
+  }
+
+  .plot-content .plotly,
+  .plot-content > div {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 400px;
+  }
+
+  .hidden-section {
+    display: none;
+  }
+
+  .dataset-overview {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 0;
+    margin-bottom: 20px;
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+  }
+
+  .dataset-header {
+    padding: 20px;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    color: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .dataset-body {
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .dataset-body.show {
+    padding: 20px;
+    max-height: 500px;
+  }
+
+  .stats-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+
+  .stat-card {
+    flex: 1;
+    min-width: 200px;
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: var(--box-shadow);
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+  }
+
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 15px;
+  }
+
+  .filter-group {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .filter-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .plot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    gap: 20px;
+  }
+
+  .alert {
+    margin-bottom: 20px;
+  }
+
+  /* Insights Section Styling */
+  .insights-section {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: var(--border-radius);
+    padding: 25px;
+    margin-top: 30px;
+    box-shadow: var(--box-shadow);
+    border-left: 5px solid var(--accent-color);
+  }
+
+  .insights-section h3 {
+    color: #154360;
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+
+  .insights-content {
+    line-height: 1.8;
+    color: #2e4053;
+    font-size: 15px;
+  }
+
+  .insights-content ul {
+    padding-left: 20px;
+  }
+
+  .insights-content li {
+    margin-bottom: 10px;
+  }
+
+  .insights-content strong {
+    color: #2c3e50;
+  }
+
+.navbar.navbar-dark {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+}
+
+/* Ensure the toggle button is clickable and above everything */
+.navbar-toggler {
+  z-index: 1100;
+  position: relative;
+}
+
+  /* Mobile responsive adjustments */
+  @media (max-width: 768px) {
+    .plot-grid {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    
+    .stats-cards {
+      flex-direction: column;
+    }
+    
+    .stat-card {
+      min-width: 100%;
+    }
+    
+    .filter-row {
+      flex-direction: column;
+    }
+    
+    .filter-group {
+      min-width: 100%;
+    }
+    .content {
+    margin-top: 70px; /* adjust this if needed */
+  }
+  }
+  /* Add smooth transitions for section switching */
+.section {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.section.hidden-section {
+    display: none !important;
+}
+
+/* Loading states for filters */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.badge.bg-warning {
+    font-size: 0.75rem;
+}
+
+/* Active navigation states */
+.sidebar a.active {
+    background-color: var(--accent-color);
+    color: white;
+    border-left: 3px solid white;
+}
+/* Light Color Styling for Filters Section */
+.filters-section {
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+    border-radius: var(--border-radius);
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e6e9ff;
+    position: relative;
+    overflow: hidden;
+}
+
+.filters-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+}
+
+.filter-section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-section-title i {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.filter-label {
+    font-weight: 500;
+    color: #5a6c7d;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    display: block;
+}
+
+/* Form Select Styling */
+.form-select {
+    border: 1px solid #d1d9ff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    background: white;
+}
+
+/* Filter Actions Styling */
+.filter-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    align-items: flex-end;
+}
+
+#applyFilterBtn {
+    background: linear-gradient(135deg, var(--primary-color), #2980b9);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+    transition: all 0.3s ease;
+}
+
+#applyFilterBtn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2980b9, #21618c);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+#resetFilterBtn {
+    background: transparent;
+    border: 1px solid #dcdfe6;
+    color: #6c757d;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+#resetFilterBtn:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+    color: #495057;
+    transform: translateY(-1px);
+}
+
+/* Active Filters Styling */
+.active-filters {
+    background: rgba(26, 188, 156, 0.08);
+    border: 1px solid rgba(26, 188, 156, 0.2);
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.active-filters .filter-label {
+    color: var(--accent-color);
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.badge.bg-primary {
+    background: linear-gradient(135deg, var(--primary-color), #2980b9) !important;
+    border: none;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Filter Loading State */
+#filterLoading {
+    background: linear-gradient(135deg, #ffd166, #ffb347);
+    border: none;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    border-radius: 12px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 177, 71, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(255, 177, 71, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 177, 71, 0);
+    }
+}
+
+/* Filter Row Responsive */
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Mobile Responsive for Filters */
+@media (max-width: 768px) {
+    .filters-section {
+        padding: 20px 15px;
+        margin-bottom: 20px;
+    }
+    
+    .filter-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .filter-group {
+        min-width: 100%;
+    }
+    
+    .filter-actions {
+        justify-content: stretch;
+    }
+    
+    .filter-actions .btn {
+        flex: 1;
+    }
+}
+
+/* Hover effects for form elements */
+.form-select:hover {
+    border-color: #a8b1ff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Disabled state styling */
+.btn:disabled {
+    opacity: 0.6;
+    transform: none !important;
+    box-shadow: none !important;
+    cursor: not-allowed;
+}
+
+/* Custom scrollbar for selects */
+.form-select::-webkit-scrollbar {
+    width: 6px;
+}
+
+.form-select::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.form-select::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+
+.form-select::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
+}
+/* Add to your existing CSS */
+.stat-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    padding: 0 10px;
+}
+
+/* Specific styling for dataset name */
+.stat-card:last-child .stat-value {
+    font-size: 1.5rem;
+    word-break: break-word;
+    white-space: normal;
+    max-height: auto
+    
+}
+  </style>
+
+</head>
+
+<body>
+  <nav class="navbar navbar-dark bg-dark d-md-none mb-4">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button"
+        onclick="toggleMobileSidebar()"
+        aria-controls="sidebar"
+        aria-expanded="false"
+        aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <span class="navbar-text text-light">📊 Dashboard</span>
+    </div>
+  </nav>
+
+  <div class="sidebar" id="sidebar">
+    <button class="toggle-sidebar d-none d-md-flex" onclick="toggleSidebar()">
+      <i class="fas fa-chevron-left" id="sidebarToggleIcon"></i>
+    </button>
+    
+<!-- In the sidebar section, replace all the onclick handlers -->
+<div class="sidebar-content">
+  <h2>📊 Dashboard</h2>
+  <a href="#" class="nav-link {% if plots.active_section == 'univariate' %}active{% endif %}" onclick="switchSection('univariate', event)">
+    <i class="fas fa-chart-bar"></i>
+    <span>Univariate Analysis</span>
+  </a>
+  <a href="#" class="nav-link {% if plots.active_section == 'sunburst' %}active{% endif %}" onclick="switchSection('sunburst', event)">
+    <i class="fas fa-sun"></i>
+    <span>Correlation Analysis</span>
+  </a>
+  <a href="#" class="nav-link {% if plots.active_section == 'academic' %}active{% endif %}" onclick="switchSection('academic', event)">
+    <i class="fas fa-graduation-cap"></i>
+    <span>Academic Performance</span>
+  </a>
+  <a href="#" class="nav-link {% if plots.active_section == 'attendance' %}active{% endif %}" onclick="switchSection('attendance', event)">
+    <i class="fas fa-clock"></i>
+    <span>Attendance Insights</span>
+  </a>
+  <a href="#" class="nav-link {% if plots.active_section == 'feedback' %}active{% endif %}" onclick="switchSection('feedback', event)">
+    <i class="fas fa-comments"></i>
+    <span>Feedback & Satisfaction</span>
+  </a>
+  <a href="#" class="nav-link {% if plots.active_section == 'engagement' %}active{% endif %}" onclick="switchSection('engagement', event)">
+    <i class="fas fa-theater-masks"></i>
+    <span>Engagement & Co-Curricular</span>
+  </a>
+</div>
+    <div class="sidebar-footer p-3">
+      <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+        <label class="form-label text-light"><i class="fas fa-upload"></i> Upload CSV</label>
+        <input type="file" name="file" class="form-control mb-2" accept=".csv">
+        <button type="submit" class="btn btn-success w-100 mb-2">Upload</button>
+      </form>
+
+      <form action="{{ url_for('switch_dataset') }}" method="POST" class="mt-3">
+        <label for="dataset_select" class="form-label text-light"><i class="fas fa-database"></i> Switch Dataset</label>
+        <select class="form-select" id="dataset_select" name="dataset_select">
+          {% for ds_id, info in datasets.items() %}
+            <option value="{{ ds_id }}" {% if ds_id == current_dataset %}selected{% endif %}>
+              {{ info.name }}
+            </option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary mt-2 w-100">Switch Dataset</button>
+      </form>
+
+      <a href="{{ url_for('logout') }}" class="btn btn-danger w-100 mt-3">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </a>
+    </div>
+  </div>
+
+<div class="content" id="mainContent">
+    <!-- Initial Loading Indicator -->
+    <div id="initialLoading" class="plot-loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Loading dashboard...</div>
+    </div>
+
+    <div id="alertsContainer" class="d-none"></div>
+
+    <div id="contentArea" class="d-none">
+      <div class="dataset-overview">
+        <div class="dataset-header" onclick="toggleDatasetOverview()">
+          <h3><i class="fas fa-database"></i> Dataset Overview</h3>
+          <i class="fas fa-chevron-down" id="datasetToggleIcon"></i>
+        </div>
+        <div class="dataset-body" id="datasetBody">
+          {% if plots.dataset_info %}
+            <div class="stats-cards">
+              <div class="stat-card">
+                <div class="stat-value">{{ plots.dataset_info.rows }}</div>
+                <div class="stat-label">Total Records</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ plots.dataset_info.filtered_rows }}</div>
+                <div class="stat-label">
+                  {% if plots.active_section == 'univariate' %}
+                    Displayed Records
+                  {% else %}
+                    Filtered Records
+                  {% endif %}
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ plots.dataset_info.columns }}</div>
+                <div class="stat-label">Total Columns</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ plots.dataset_info.name }}</div>
+                <div class="stat-label">Dataset Name</div>
+              </div>
+            </div>
+            
+            
+          {% else %}
+            <p class="text-danger">Dataset info unavailable</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- ✅ UPDATED: Filters Section - Hidden for Univariate -->
+      <div class="filters-section" id="filtersSection" {% if not plots.show_filters %}style="display: none;"{% endif %}>
+        <div class="filter-section-title">
+          <i class="fas fa-filter"></i> Data Filters
+          <span id="filterLoading" class="badge bg-warning ms-2 d-none">
+            <i class="fas fa-spinner fa-spin"></i> Applying Filters...
+          </span>
+        </div>
+        
+        <form id="filterForm" method="GET" action="{{ url_for('dashboard') }}">
+          <!-- ✅ CRITICAL: Always preserve current section in hidden input -->
+          <input type="hidden" name="section" id="sectionInput" value="{{ plots.active_section }}">
+          
+          <div class="filter-row">
+            <div class="filter-group">
+              <div class="filter-label">Gender</div>
+              <select class="form-select" name="gender" id="genderFilter">
+                <option value="all">All Genders</option>
+                {% for gender in plots.filter_options.genders %}
+                  {% if gender != 'all' %}
+                    <option value="{{ gender }}" {% if plots.filters.gender == gender %}selected{% endif %}>{{ gender }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <div class="filter-label">Department</div>
+              <select class="form-select" name="department" id="departmentFilter">
+                <option value="all">All Departments</option>
+                {% for dept in plots.filter_options.departments %}
+                  {% if dept != 'all' %}
+                    <option value="{{ dept }}" {% if plots.filters.department == dept %}selected{% endif %}>{{ dept }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <div class="filter-label">Co-Curricular Activities</div>
+              <select class="form-select" name="cocurricular" id="cocurricularFilter">
+                <option value="all">All Activities</option>
+                {% for activity in plots.filter_options.cocurriculars %}
+                  {% if activity != 'all' %}
+                    <option value="{{ activity }}" {% if plots.filters.cocurricular == activity %}selected{% endif %}>{{ activity }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="filter-actions">
+              <button type="submit" class="btn btn-primary" id="applyFilterBtn">
+                <i class="fas fa-filter"></i> Apply Filters
+              </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="resetFilters()" id="resetFilterBtn">
+                <i class="fas fa-redo"></i> Reset
+              </button>
+            </div>
+          </div>
+        </form>
+        
+        {% set has_active_filters = false %}
+        {% if plots.filters %}
+          {% for key, value in plots.filters.items() %}
+            {% if value != 'all' %}
+              {% set has_active_filters = true %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+        
+        {% if has_active_filters %}
+        <div class="active-filters mt-3">
+          <div class="filter-label">Active Filters:</div>
+          <div class="d-flex flex-wrap gap-2">
+            {% if plots.filters.gender != 'all' %}
+              <span class="badge bg-primary">Gender: {{ plots.filters.gender }}</span>
+            {% endif %}
+            {% if plots.filters.department != 'all' %}
+              <span class="badge bg-primary">Department: {{ plots.filters.department }}</span>
+            {% endif %}
+            {% if plots.filters.cocurricular != 'all' %}
+              <span class="badge bg-primary">Co-Curricular: {{ plots.filters.cocurricular }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Univariate Analysis Section -->
+      <div id="univariate" class="section {% if plots.active_section != 'univariate' %}hidden-section{% endif %}">
+        <h3 class="section-title">
+          <i class="fas fa-chart-bar"></i> Univariate Analysis
+          
+        </h3>
+        
+        {% if plots.univariate_plots %}
+          <div class="plot-grid">
+            {% for col, plot_html in plots.univariate_plots.items() %}
+              <div class="plot-card lazy-loaded">
+                <div class="plot-content">{{ plot_html|safe }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p>No univariate plots available.</p>
+        {% endif %}
+
+        <!-- Univariate Insights -->
+        {% if current_dataset == 'default' and plots.insights %}
+          <div class="insights-section lazy-loaded">
+            <div class="insights-content">
+              {{ plots.insights.content | safe }}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Academic Performance Section -->
+      <div id="academic" class="section {% if plots.active_section != 'academic' %}hidden-section{% endif %}">
+        <h3 class="section-title"><i class="fas fa-graduation-cap"></i> Academic Performance</h3>
+        
+        <!-- REMOVED: {% if plots.active_section == 'academic' %} conditional -->
+        {% if plots.dept_vs_cgpa or plots.gender_vs_cgpa %}
+          <div class="plot-grid">
+            {% for plot in plots.dept_vs_cgpa %}
+              <div class="plot-card lazy-loaded">
+                <div class="plot-content">
+                  {% if plot.plot %}
+                    {% if plot.plot.startswith('data:image') %}
+                      <img src="{{ plot.plot }}">
+                    {% else %}
+                      {{ plot.plot|safe }}
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+            
+            {% for plot in plots.gender_vs_cgpa %}
+              <div class="plot-card lazy-loaded">
+                <div class="plot-content">
+                  {% if plot.plot %}
+                    {% if plot.plot.startswith('data:image') %}
+                      <img src="{{ plot.plot }}">
+                    {% else %}
+                      {{ plot.plot|safe }}
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Academic Insights -->
+          {% if current_dataset == 'default' and plots.academic_insights %}
+            <div class="insights-section lazy-loaded">
+              <div class="insights-content">
+                {{ plots.academic_insights.content | safe }}
+              </div>
+            </div>
+          {% endif %}
+          
+        {% else %}
+          <p>No academic performance data available.</p>
+        {% endif %}
+        <!-- REMOVED: {% endif %} -->
+      </div>
+
+      <!-- Attendance Insights Section -->
+      <div id="attendance" class="section {% if plots.active_section != 'attendance' %}hidden-section{% endif %}">
+        <h3 class="section-title"><i class="fas fa-clock"></i> Attendance Insights</h3>
+        
+        <!-- REMOVED: {% if plots.active_section == 'attendance' %} conditional -->
+        <div class="plot-grid">
+          {% for plot in plots.dept_vs_avg_attendance %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          
+          {% for plot in plots.gender_vs_attendance %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Attendance Insights (if available) -->
+        {% if current_dataset == 'default' and plots.attendance_insights %}
+          <div class="insights-section lazy-loaded">
+            <div class="insights-content">
+              {{ plots.attendance_insights.content | safe }}
+            </div>
+          </div>
+        {% endif %}
+        <!-- REMOVED: {% endif %} -->
+      </div>
+
+      <!-- Feedback & Satisfaction Section -->
+      <div id="feedback" class="section {% if plots.active_section != 'feedback' %}hidden-section{% endif %}">
+        <h3 class="section-title"><i class="fas fa-comments"></i> Feedback & Satisfaction</h3>
+        
+        <!-- REMOVED: {% if plots.active_section == 'feedback' %} conditional -->
+        <div class="plot-grid">
+          {% for plot in plots.dept_vs_feedback %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          
+          {% for plot in plots.dept_vs_teacher_feedback %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          
+          {% for plot in plots.gender_vs_feedback_rating %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          
+          {% for plot in plots.gender_vs_teacher_feedback %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Feedback Insights (if available) -->
+        {% if current_dataset == 'default' and plots.feedback_insights %}
+          <div class="insights-section lazy-loaded">
+            <div class="insights-content">
+              {{ plots.feedback_insights.content | safe }}
+            </div>
+          </div>
+        {% endif %}
+        <!-- REMOVED: {% endif %} -->
+      </div>
+
+      <!-- Engagement & Co-Curricular Section -->
+      <div id="engagement" class="section {% if plots.active_section != 'engagement' %}hidden-section{% endif %}">
+        <h3 class="section-title"><i class="fas fa-theater-masks"></i> Engagement & Co-Curricular Activities</h3>
+        
+        <!-- REMOVED: {% if plots.active_section == 'engagement' %} conditional -->
+        <div class="plot-grid">
+          {% for plot in plots.dept_vs_co_curricular_all %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          
+          {% for plot in plots.gender_vs_cocurricular %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          
+          
+          {% for plot in plots.attendance_vs_cocurricular_all %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          
+          {% for plot in plots.cgpa_vs_cocurricular_all %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Engagement Insights (if available) -->
+        {% if current_dataset == 'default' and plots.engagement_insights %}
+          <div class="insights-section lazy-loaded">
+            <div class="insights-content">
+              {{ plots.engagement_insights.content | safe }}
+            </div>
+          </div>
+        {% endif %}
+        <!-- REMOVED: {% endif %} -->
+      </div>
+      
+      <!-- Correlation Analysis Section -->
+      <div id="sunburst" class="section {% if plots.active_section != 'sunburst' %}hidden-section{% endif %}">
+        <h3 class="section-title"><i class="fas fa-sun"></i> Correlation Analysis</h3>
+        
+        <!-- REMOVED: {% if plots.active_section == 'sunburst' %} conditional -->
+        <div class="plot-grid">
+          {% for plot in plots.feedback_vs_cgpa_all %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          
+          {% for plot in plots.attendance_vs_cgpa_all %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+          
+          {% for plot in plots.attendance_vs_feedback_all %}
+            <div class="plot-card lazy-loaded">
+              <div class="plot-content">
+                {% if plot.plot %}
+                  {% if plot.plot.startswith('data:image') %}
+                    <img src="{{ plot.plot }}">
+                  {% else %}
+                    {{ plot.plot|safe }}
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Correlation Insights (if available) -->
+        {% if current_dataset == 'default' and plots.correlation_insights %}
+          <div class="insights-section lazy-loaded">
+            <div class="insights-content">
+              {{ plots.correlation_insights.content | safe }}
+            </div>
+          </div>
+        {% endif %}
+        <!-- REMOVED: {% endif %} -->
+      </div>
+    </div>
+  </div>
+
+<script>
+// Global state management
+const appState = {
+    currentSection: '{{ plots.active_section }}' || 'univariate',
+    currentFilters: JSON.parse('{{ plots.filters | tojson | safe }}'),
+    isLoading: false,
+    plotsLoaded: {},
+    performanceLog: {
+        startTime: Date.now(),
+        sectionLoadTimes: {}
+    }
+};
+
+// Initialize all sections as loaded (since we render them server-side)
+document.addEventListener('DOMContentLoaded', function() {
+    // Mark all rendered sections as loaded
+    document.querySelectorAll('.section').forEach(section => {
+        appState.plotsLoaded[section.id] = true;
+    });
+    
+    initializeDashboard();
+});
+
+function initializeDashboard() {
+    // Hide initial loading and show content
+    setTimeout(() => {
+        const initialLoading = document.getElementById('initialLoading');
+        const contentArea = document.getElementById('contentArea');
+        const alertsContainer = document.getElementById('alertsContainer');
+        
+        if (initialLoading) initialLoading.classList.add('d-none');
+        if (contentArea) contentArea.classList.remove('d-none');
+        if (alertsContainer) alertsContainer.classList.remove('d-none');
+        
+        // Initialize the correct section from backend data
+        const currentSection = '{{ plots.active_section }}' || 'univariate';
+        appState.currentSection = currentSection;
+        
+        console.log(`✅ Dashboard initialized - Active Section: ${currentSection}`);
+        
+        // Show only the active section, hide others
+        document.querySelectorAll('.section').forEach(sec => {
+            if (sec.id !== currentSection) {
+                sec.classList.add('hidden-section');
+            } else {
+                sec.classList.remove('hidden-section');
+            }
+        });
+        
+        // Initialize filters section visibility
+        toggleFiltersSection(currentSection);
+        
+        // Initialize filter values from current state
+        initializeFilterValues();
+        
+        // Log total load time
+        const totalLoadTime = Date.now() - appState.performanceLog.startTime;
+        console.log(`🚀 Dashboard fully loaded in ${totalLoadTime}ms`);
+        console.log(`📊 All sections pre-rendered: ${Object.keys(appState.plotsLoaded).join(', ')}`);
+        
+        // Resize plots after everything is loaded
+        setTimeout(() => {
+            if (window.Plotly) {
+                document.querySelectorAll('.js-plotly-plot').forEach(function(plot) {
+                    if (plot.offsetParent !== null) {
+                        Plotly.Plots.resize(plot);
+                    }
+                });
+            }
+        }, 500);
+    }, 100);
+}
+
+// Initialize filter dropdowns with current values
+function initializeFilterValues() {
+    if (appState.currentFilters) {
+        if (appState.currentFilters.gender && document.getElementById('genderFilter')) {
+            document.getElementById('genderFilter').value = appState.currentFilters.gender;
+        }
+        if (appState.currentFilters.department && document.getElementById('departmentFilter')) {
+            document.getElementById('departmentFilter').value = appState.currentFilters.department;
+        }
+        if (appState.currentFilters.cocurricular && document.getElementById('cocurricularFilter')) {
+            document.getElementById('cocurricularFilter').value = appState.currentFilters.cocurricular;
+        }
+    }
+}
+
+// ✅ FIXED: Simple section switching with immediate plot display
+function switchSection(sectionId, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    // Don't do anything if we're already on this section
+    if (sectionId === appState.currentSection || appState.isLoading) {
+        return;
+    }
+    
+    const sectionStartTime = Date.now();
+    appState.currentSection = sectionId;
+    
+    console.log(`🔄 Switching to section: ${sectionId}`);
+    
+    // Update URL to trigger server-side rendering with current filters
+    const url = new URL(window.location);
+    url.searchParams.set('section', sectionId);
+    
+    // Preserve current filter values in URL
+    if (appState.currentFilters) {
+        Object.keys(appState.currentFilters).forEach(key => {
+            if (appState.currentFilters[key] && appState.currentFilters[key] !== 'all') {
+                url.searchParams.set(key, appState.currentFilters[key]);
+            } else {
+                url.searchParams.delete(key);
+            }
+        });
+    }
+    
+    // Navigate to the new URL - this will trigger a page reload with the correct data
+    window.location.href = url.toString();
+}
+
+// ✅ UPDATED: Toggle filters section visibility
+function toggleFiltersSection(sectionId) {
+    const filtersSection = document.getElementById('filtersSection');
+    if (filtersSection) {
+        if (sectionId === 'univariate') {
+            filtersSection.style.display = 'none';
+            console.log(`✅ Filters hidden for univariate section`);
+        } else {
+            filtersSection.style.display = 'block';
+            console.log(`✅ Filters visible for ${sectionId} section`);
+        }
+    }
+}
+
+// ✅ SIMPLIFIED: Filter form handling - just show loading states
+function enhanceFilterForm() {
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        filterForm.addEventListener('submit', function(e) {
+            // Allow form to submit normally - this will reload the page
+            
+            // ✅ Show filter loading indicator
+            const filterLoading = document.getElementById('filterLoading');
+            const applyBtn = document.getElementById('applyFilterBtn');
+            const resetBtn = document.getElementById('resetFilterBtn');
+            
+            if (filterLoading) filterLoading.classList.remove('d-none');
+            if (applyBtn) {
+                applyBtn.disabled = true;
+                applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+            }
+            if (resetBtn) resetBtn.disabled = true;
+            
+            // ✅ Preserve current section in the form
+            document.getElementById('sectionInput').value = appState.currentSection;
+            
+            console.log(`🔍 Applying filters for section: ${appState.currentSection}`);
+            
+            // Form will submit normally and reload page with filtered data
+        });
+    }
+}
+
+// Enhanced reset filters function
+function resetFilters() {
+    // Show loading state
+    const filterLoading = document.getElementById('filterLoading');
+    const applyBtn = document.getElementById('applyFilterBtn');
+    const resetBtn = document.getElementById('resetFilterBtn');
+    
+    if (filterLoading) filterLoading.classList.remove('d-none');
+    if (applyBtn) {
+        applyBtn.disabled = true;
+        applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+    }
+    if (resetBtn) resetBtn.disabled = true;
+    
+    // Reset form values
+    document.getElementById('departmentFilter').value = 'all';
+    document.getElementById('genderFilter').value = 'all';
+    document.getElementById('cocurricularFilter').value = 'all';
+    
+    // ✅ Preserve current section
+    document.getElementById('sectionInput').value = appState.currentSection;
+    
+    console.log(`🔄 Resetting filters for section: ${appState.currentSection}`);
+    
+    // Submit the form (will reload page with reset filters)
+    document.getElementById('filterForm').submit();
+}
+
+// Sidebar toggle functionality
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const toggleIcon = document.getElementById('sidebarToggleIcon');
+    
+    sidebar.classList.toggle('collapsed');
+    mainContent.classList.toggle('expanded');
+    
+    toggleIcon.classList.toggle('fa-chevron-left');
+    toggleIcon.classList.toggle('fa-chevron-right');
+    
+    // Resize plots after sidebar animation
+    setTimeout(() => {
+        if (window.Plotly) {
+            window.dispatchEvent(new Event('resize'));
+        }
+    }, 300);
+}
+
+// Mobile sidebar toggle
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('show');
+}
+
+// Dataset overview toggle
+function toggleDatasetOverview() {
+    const datasetBody = document.getElementById('datasetBody');
+    const toggleIcon = document.getElementById('datasetToggleIcon');
+    
+    datasetBody.classList.toggle('show');
+    toggleIcon.classList.toggle('fa-chevron-down');
+    toggleIcon.classList.toggle('fa-chevron-up');
+}
+
+// Optimized resize handler with debouncing
+let resizeTimeout;
+window.addEventListener("resize", function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        if (window.Plotly) {
+            document.querySelectorAll('.js-plotly-plot').forEach(function(plot) {
+                if (plot.offsetParent !== null) {
+                    Plotly.Plots.resize(plot);
+                }
+            });
+        }
+    }, 250);
+});
+
+// Performance monitoring function
+function logPerformance() {
+    console.group('📊 Dashboard Performance');
+    console.log(`Current section: ${appState.currentSection}`);
+    console.log(`Current filters:`, appState.currentFilters);
+    console.log(`Sections loaded: ${Object.keys(appState.plotsLoaded).join(', ')}`);
+    console.log(`Total load time: ${Date.now() - appState.performanceLog.startTime}ms`);
+    console.table(appState.performanceLog.sectionLoadTimes);
+    console.groupEnd();
+}
+
+// Expose for debugging
+window.appState = appState;
+window.logPerformance = logPerformance;
+</script>
+</html>

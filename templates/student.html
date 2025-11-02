@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎓 Student Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #f4f6f9;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .logout-btn {
+      position: fixed;
+      top: 20px;
+      right: 30px;
+      z-index: 1000;
+    }
+
+    .card {
+      border-radius: 20px;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+      background: #fff;
+    }
+
+    h2 {
+      color: #007bff;
+      font-weight: 600;
+    }
+
+    table th {
+      background-color: #007bff;
+      color: white;
+      text-align: center;
+      vertical-align: middle;
+      border-radius: 8px 0 0 8px;
+    }
+
+    table td {
+      vertical-align: middle;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    hr {
+      border-top: 2px solid #007bff;
+      opacity: 0.5;
+    }
+
+    .insight-section {
+      margin-top: 40px;
+      padding: 20px;
+      background: #eaf4ff;
+      border-radius: 15px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .insight-section h4 {
+      color: #0056b3;
+      font-weight: 600;
+    }
+
+    footer {
+      text-align: center;
+      color: #555;
+      margin-top: 40px;
+      font-size: 14px;
+    }
+
+    .highlight {
+      color: #007bff;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container mt-5 position-relative">
+    <!-- 🔴 Logout -->
+    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger logout-btn">Logout</a>
+
+    <!-- 🧾 Student Info Card -->
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card p-4">
+          <h2 class="text-center mb-3">Welcome, <span class="highlight">{{ username }}</span> 👋</h2>
+          <p class="text-center text-muted">Here’s your academic and activity overview:</p>
+          <hr>
+
+          {% if student_data %}
+          <div class="table-responsive">
+            <table class="table table-striped align-middle text-center">
+              <tbody>
+                {% for key, value in student_data.items() %}
+                  {% if 'password' not in key.lower() and 'name' not in key.lower() %}
+                  <tr>
+                    <th>{{ key.replace('_',' ').title() }}</th>
+                    <td>{{ value }}</td>
+                  </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-center text-danger">No student data found.</p>
+          {% endif %}
+        </div>
+
+        <!-- 📊 Insights Section (for future plots)
+        <div class="insight-section mt-4">
+          <h4>📈 Your Insights</h4>
+          <p>We'll soon display personalized plots here such as:</p>
+          <ul>
+            <li>Attendance vs CGPA trend</li>
+            <li>Feedback rating comparison with peers</li>
+            <li>Co-curricular participation impact on performance</li>
+          </ul>
+          <p class="text-muted small">Stay tuned! Your personalized analytics are on the way.</p>
+        </div> -->
+
+        <!-- Footer -->
+        <footer>
+          <p>© {{ 2025 }} Student Analytics Portal | Built for smart performance insights 💡</p>
+        </footer>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
