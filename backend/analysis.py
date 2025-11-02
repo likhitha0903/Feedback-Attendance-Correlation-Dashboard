@@ -1,29 +1,14 @@
 import os
+import base64
+from io import BytesIO
+import pandas as pd
+import plotly.express as px
+import matplotlib.pyplot as plt
+import seaborn as sns
 import json
 import uuid
-import pandas as pd
 from datetime import datetime
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 plt.switch_backend('Agg')
-
-# ✅ Add this fallback constant
-DEFAULT_DATASET_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "default", "data.csv")
-
-
-def safe_load_csv(path):
-    """Try to load CSV; fallback to default if missing."""
-    if not os.path.exists(path):
-        print(f"⚠️ Missing dataset: {path}. Using default dataset instead.")
-        return pd.read_csv(DEFAULT_DATASET_PATH)
-    try:
-        return pd.read_csv(path)
-    except Exception as e:
-        print(f"⚠️ Error reading {path}: {e}. Using default dataset instead.")
-        return pd.read_csv(DEFAULT_DATASET_PATH)
-
 
 def get_datasets():
     """Get list of all available datasets"""
@@ -52,14 +37,12 @@ def get_datasets():
     
     return default_datasets
 
-
 def save_dataset_info(datasets):
     """Save dataset metadata"""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     datasets_file = os.path.join(base_dir, "data", "datasets.json")
     with open(datasets_file, 'w') as f:
         json.dump(datasets, f, indent=2)
-
 
 def add_uploaded_dataset(file, filename):
     """Add new uploaded dataset"""
@@ -93,7 +76,6 @@ def add_uploaded_dataset(file, filename):
     save_dataset_info(datasets)
     return dataset_id
 
-
 def load_data(dataset_id="default"):
     """Load data from specific dataset"""
     try:
@@ -106,8 +88,7 @@ def load_data(dataset_id="default"):
         dataset_info = datasets[dataset_id]
         data_path = os.path.join(base_dir, "data", dataset_info["path"])
         
-        # ✅ Use safe loader here
-        df = safe_load_csv(data_path)
+        df = pd.read_csv(data_path)
         df.columns = df.columns.str.strip()
         
         # Update row/column count
@@ -122,7 +103,6 @@ def load_data(dataset_id="default"):
             return load_data("default")
         else:
             raise e
-
             
 def sunburst_chart(df):
     required_cols = ["Department", "Teacher_Feedback", "Average_Attendance_On_Class"]
