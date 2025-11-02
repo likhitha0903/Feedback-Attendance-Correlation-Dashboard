@@ -8,7 +8,7 @@ from functools import lru_cache
 import hashlib
 
 # Add the parent directory to Python path to import analysis module
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from analysis import *
