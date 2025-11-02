@@ -291,7 +291,7 @@ def load_all_datasets_credentials():
 
 @app.before_request
 def before_request():
-    if 'all_student_credentials' not in app.config:
+    if session.get('user_type') == 'admin' and 'all_student_credentials' not in app.config:
         load_all_datasets_credentials()
 
 # -------------------------
@@ -665,4 +665,4 @@ if __name__ == "__main__":
     print("   ✅ Univariate independent from filters")
     print("   ✅ All sections pre-loaded")
     print("   ✅ Filter persistence across sections")
-    app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
